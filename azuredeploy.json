@@ -72,7 +72,7 @@
     "imagePublisher": "MicrosoftWindowsServer",
     "imageOffer": "WindowsServer",
     "osDiskName": "osDisk",
-    "VnetName": "[concat('Vnet',resourceGroup().name)]",
+    "VnetName": "vnet",
     "vnetID": "[resourceId('Microsoft.Network/virtualNetworks', variables('VnetName'))]",
     "subnetRef": "[concat(variables('vnetID'), '/subnets/', variables('virtualnetworkSubnet1Name'))]",
     "webSubnetRef": "[concat(variables('vnetID'), '/subnets/', variables('virtualnetworkSubnet2Name'))]",
@@ -217,7 +217,6 @@
       "type": "Microsoft.Network/virtualNetworks",
       "location": "[resourceGroup().location]",
       "apiVersion": "2015-06-15",
-      "dependsOn": [ "variables('nsgID')" ],
       "tags": {
         "displayName": "vnet"
       },
