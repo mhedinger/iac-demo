@@ -77,7 +77,6 @@
     "subnetRef": "[concat(variables('vnetID'), '/subnets/', variables('virtualnetworkSubnet1Name'))]",
     "webSubnetRef": "[concat(variables('vnetID'), '/subnets/', variables('virtualnetworkSubnet2Name'))]",
     "vmStorageAccountContainerName": "vhds",
-    "nicName": "[concat(parameters('vmName'), 'nic')]",
     "adVmDeployment": "CreateAdVms",
     "adVmDeploymentId": "[concat('Microsoft.Resources/deployments/', variables('adVmDeployment'))]",
     "deployPrimaryAdTemplateURL": "[concat(variables('adAssetLocation'),'/deployPrimaryAD.json')]",
@@ -92,7 +91,8 @@
     "virtualnetworkSubnet1Prefix": "10.0.0.0/24",
     "virtualnetworkSubnet2Name": "Subnet-2",
     "virtualnetworkSubnet2Prefix": "10.0.1.0/24",
-    "storageAccountName": "[concat('sa', uniqueString(resourceGroup().id))]",
+    "adStorageName": "[concat('adsa', resourceGroup().name)]",
+    "storageAccountName": "[concat('sa', resourceGroup().name)]",
     "uniqueStorageAccountContainerName": "[tolower(concat('sc', uniqueString(resourceGroup().id)))]",
     "nsgName": "iac-nsg",
     "nsgID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('nsgName'))]",
@@ -148,78 +148,10 @@
       }
     },
     {
-      "name": "[variables('nicName')]",
-      "apiVersion": "2015-06-15",
-      "type": "Microsoft.Network/networkInterfaces",
-      "location": "[resourceGroup().location]",
-      "dependsOn": [
-        "[concat('Microsoft.Network/virtualNetworks/','vnet')]"
-      ],
-      "properties": {
-        "ipConfigurations": [
-          {
-            "name": "ipconfig1",
-            "properties": {
-              "privateIPAllocationMethod": "Dynamic",
-              "subnet": {
-                "id": "[variables('subnetRef')]"
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "[parameters('vmName')]",
-      "type": "Microsoft.Compute/virtualMachines",
-      "location": "[resourceGroup().location]",
-      "apiVersion": "2015-06-15",
-      "dependsOn": [
-        "[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]",
-        "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'))]"
-      ],
-      "properties": {
-        "hardwareProfile": {
-          "vmSize": "[parameters('vmSize')]"
-        },
-        "osProfile": {
-          "computerName": "[parameters('vmName')]",
-          "adminUsername": "[parameters('adminUsername')]",
-          "adminPassword": "[parameters('adminPassword')]"
-        },
-        "storageProfile": {
-          "imageReference": {
-            "publisher": "[variables('imagePublisher')]",
-            "offer": "[variables('imageOffer')]",
-            "sku": "[parameters('imageSku')]",
-            "version": "latest"
-          },
-          "osDisk": {
-            "name": "WindowsVMOSDisk",
-            "vhd": {
-              "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName')),providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob,variables('vmStorageAccountContainerName'),'/',concat(variables('osDiskName'),copyIndex()),'.vhd')]"
-            },
-            "caching": "ReadWrite",
-            "createOption": "FromImage"
-          }
-        },
-        "networkProfile": {
-          "networkInterfaces": [
-            {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('nicName'),copyIndex()))]"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "name": "vnet",
+      "name": "[variables('VnetName')]",
       "type": "Microsoft.Network/virtualNetworks",
       "location": "[resourceGroup().location]",
       "apiVersion": "2015-06-15",
-      "tags": {
-        "displayName": "vnet"
-      },
       "properties": {
         "addressSpace": {
           "addressPrefixes": [
@@ -351,7 +283,7 @@
             "value": "[parameters('adminPassword')]"
           },
           "storageAccount": {
-            "value": "[variables('storageAccountName')]"
+            "value": "[variables('adStorageName')]"
           },
           "subnetResourceId": {
             "value": "[variables('subnetRef')]"
