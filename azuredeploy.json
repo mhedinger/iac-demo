@@ -75,7 +75,6 @@
     "VnetName": "vnet",
     "vnetID": "[resourceId('Microsoft.Network/virtualNetworks', variables('VnetName'))]",
     "subnetRef": "[concat(variables('vnetID'), '/subnets/', variables('virtualnetworkSubnet1Name'))]",
-    "webSubnetRef": "[concat(variables('vnetID'), '/subnets/', variables('virtualnetworkSubnet2Name'))]",
     "vmStorageAccountContainerName": "vhds",
     "adVmDeployment": "CreateAdVms",
     "adVmDeploymentId": "[concat('Microsoft.Resources/deployments/', variables('adVmDeployment'))]",
@@ -89,15 +88,15 @@
     "virtualnetworkPrefix": "10.0.0.0/16",
     "virtualnetworkSubnet1Name": "Subnet-1",
     "virtualnetworkSubnet1Prefix": "10.0.0.0/24",
-    "virtualnetworkSubnet2Name": "Subnet-2",
-    "virtualnetworkSubnet2Prefix": "10.0.1.0/24",
     "adStorageName": "[concat('adsa', resourceGroup().name)]",
     "storageAccountName": "[concat('sa', resourceGroup().name)]",
     "uniqueStorageAccountContainerName": "[tolower(concat('sc', uniqueString(resourceGroup().id)))]",
     "nsgName": "iac-nsg",
     "nsgID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('nsgName'))]",
-    "publicIPAddressName": "[concat('PIP-',resourceGroup().name)]",
+    "publicIPAddressName": "[concat('GwPIP-',resourceGroup().name)]",
+    "webPublicIPAddressName": "[concat('WebPIP-',resourceGroup().name)]",
     "gwIPAddressID": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName'))]",
+    "webIPAddressID": "[resourceId('Microsoft.Network/publicIPAddresses',variables('webPublicIPAddressName'))]",
     "gwLBName": "[concat('gwLB',resourceGroup().name)]",
     "gwlbFE": "FrontEnd",
     "gwlbID": "[resourceId('Microsoft.Network/loadBalancers',variables('gwLBName'))]",
@@ -106,19 +105,19 @@
     "gwBEAddressPoolID": "[concat(variables('gwlbID'),'/backendAddressPools/',variables('gwlbBE'))]",
     "assetLocation": "https://raw.githubusercontent.com/mhedinger/iac-demo/master/rds-deployment/",
     "adAssetLocation": "https://raw.githubusercontent.com/mhedinger/iac-demo/master/ad-non-ha",
+    "rootAssetLocation": "https://raw.githubusercontent.com/mhedinger/iac-demo/master/",
+    "scriptFolder": ".",
+    "scriptFileName": "Install-IIS.ps1",
     "adTemplateURL": "[concat(variables('adAssetLocation'),'/adVmTemplate.json')]",
     "dnsPrefix": "[tolower(concat(resourceGroup().name,'dc'))]",
     "subnets": [
       {
         "name": "[variables('virtualnetworkSubnet1Name')]",
         "properties": {
-          "addressPrefix": "[variables('virtualnetworkSubnet1Prefix')]"
-        }
-      },
-      {
-        "name": "[variables('virtualnetworkSubnet2Name')]",
-        "properties": {
-          "addressPrefix": "[variables('virtualnetworkSubnet2Prefix')]"
+          "addressPrefix": "[variables('virtualnetworkSubnet1Prefix')]",
+          "networkSecurityGroup": {
+            "id": "[variables('nsgID')]"
+          }
         }
       }
     ]
@@ -166,6 +165,21 @@
     },
     {
       "name": "[variables('publicIPAddressName')]",
+      "location": "[resourceGroup().location]",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [
+        "[variables('vnetID')]"
+      ],
+      "properties": {
+        "publicIPAllocationMethod": "Dynamic",
+        "dnsSettings": {
+          "domainNameLabel": "[variables('dnsPrefix')]"
+        }
+      }
+    },
+    {
+      "name": "[variables('webPublicIPAddressName')]",
       "location": "[resourceGroup().location]",
       "type": "Microsoft.Network/publicIPAddresses",
       "apiVersion": "2015-06-15",
@@ -295,7 +309,7 @@
             "value": "[parameters('storageAccountType')]"
           },
           "vmName": {
-            "value": "advm"
+            "value": "ad-vm"
           },
           "vmSize": {
             "value": "Standard_A1"
@@ -321,7 +335,7 @@
         },
         "parameters": {
           "primaryADName": {
-            "value": "advm"
+            "value": "ad-vm"
           },
           "domainName": {
             "value": "[parameters('adDomainName')]"
@@ -422,7 +436,10 @@
             "properties": {
               "privateIPAllocationMethod": "Dynamic",
               "subnet": {
-                "id": "[variables('webSubnetRef')]"
+                "id": "[variables('subnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[variables('webIPAddressID')]"
               }
             }
           }
@@ -553,7 +570,30 @@
             }
           ]
         }
-      }
+      },
+      "resources": [
+        {
+          "type": "extensions",
+          "name": "CustomScriptExtension",
+          "apiVersion": "2015-06-15",
+          "location": "[resourceGroup().location]",
+          "dependsOn": [
+            "[resourceId('Microsoft.Compute/virtualMachines', 'web-vm')]"
+          ],
+          "properties": {
+            "publisher": "Microsoft.Compute",
+            "type": "CustomScriptExtension",
+            "typeHandlerVersion": "1.8",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "fileUris": [
+                "[concat(variables('rootAssetLocation'), '/', variables('ScriptFolder'), '/', variables('ScriptFileName'))]"
+              ],
+              "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File ', variables('scriptFolder'), '/', variables('scriptFileName'))]"
+            }
+          }
+        }
+      ]
     }
   ]
 }
