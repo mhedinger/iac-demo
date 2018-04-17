@@ -2,11 +2,6 @@
   "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "vmName": {
-      "type": "string",
-      "defaultValue": "WindowsVM",
-      "minLength": 1
-    },
     "adminUsername": {
       "type": "string",
       "defaultValue": "vmadmin",
@@ -151,6 +146,9 @@
       "type": "Microsoft.Network/virtualNetworks",
       "location": "[resourceGroup().location]",
       "apiVersion": "2015-06-15",
+      "dependsOn": [
+        "[variables('nsgID')]"
+      ],
       "properties": {
         "addressSpace": {
           "addressPrefixes": [
@@ -174,7 +172,7 @@
       "properties": {
         "publicIPAllocationMethod": "Dynamic",
         "dnsSettings": {
-          "domainNameLabel": "[variables('dnsPrefix')]"
+          "domainNameLabel": "[concat('gw-',variables('dnsPrefix'))]"
         }
       }
     },
@@ -189,7 +187,7 @@
       "properties": {
         "publicIPAllocationMethod": "Dynamic",
         "dnsSettings": {
-          "domainNameLabel": "[variables('dnsPrefix')]"
+          "domainNameLabel": "[concat('web-',variables('dnsPrefix'))]"
         }
       }
     },
@@ -283,6 +281,9 @@
       "name": "[variables('adVmDeployment')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2016-02-01",
+      "dependsOn": [
+        "[variables('vnetID')]"
+      ],
       "properties": {
         "mode": "Incremental",
         "templateLink": {
