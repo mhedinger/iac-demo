@@ -25,7 +25,7 @@
         "2016-Datacenter"
       ],
       "metadata": {
-        "description": "Windows server SKU"
+        "description": "Windows server version for RD and Web servers"
       }
     },
     "adDomainName": {
@@ -35,17 +35,9 @@
       },
       "defaultValue": "contoso.com"
     },
-    "storageAccountType": {
-      "type": "string",
-      "defaultValue": "Standard_LRS",
-      "allowedValues": [
-        "Standard_LRS",
-        "Premium_LRS"
-      ]
-    },
     "vmSize": {
       "type": "string",
-      "defaultValue": "Standard_A1",
+      "defaultValue": "Standard_A4",
       "allowedValues": [
         "Basic_A3",
         "Basic_A4",
@@ -67,6 +59,7 @@
     "imagePublisher": "MicrosoftWindowsServer",
     "imageOffer": "WindowsServer",
     "osDiskName": "osDisk",
+    "storageAccountType": "Standard_LRS",
     "VnetName": "vnet",
     "vnetID": "[resourceId('Microsoft.Network/virtualNetworks', variables('VnetName'))]",
     "subnetRef": "[concat(variables('vnetID'), '/subnets/', variables('virtualnetworkSubnet1Name'))]",
@@ -274,7 +267,7 @@
         "displayName": "sa"
       },
       "properties": {
-        "accountType": "[parameters('storageAccountType')]"
+        "accountType": "[variables('storageAccountType')]"
       }
     },
     {
@@ -307,7 +300,7 @@
             "value": "[variables('dnsServerPrivateIp')]"
           },
           "storageAccountType": {
-            "value": "[parameters('storageAccountType')]"
+            "value": "[variables('storageAccountType')]"
           },
           "vmName": {
             "value": "ad-vm"
@@ -535,7 +528,6 @@
       "name": "web-vm",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[variables('deployPrimaryAdID')]",
         "[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]",
         "Microsoft.Network/networkInterfaces/web-nic"
       ],
